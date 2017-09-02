@@ -1,0 +1,8 @@
+playground/
+*.xlsx
+
+# pyenv
+.python-version
+
+# IDE
+.idea
