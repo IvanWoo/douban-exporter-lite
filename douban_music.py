@@ -1,4 +1,5 @@
 import requests
+import os
 
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -28,17 +29,19 @@ class MusicSheet(object):
             sheet.set_column(2, 3, 20, global_format)
             sheet.set_column(4, 4, 10, global_format)
             sheet.set_column(5, 5, 50, global_format)
-            sheet_header = [u'专辑名', u'表演者', u'发行日期', u'标记日期', u'我的评分', u'我的评语']
+            sheet.set_column(6, 6, 30, global_format)
+            sheet_header = ['专辑名', '表演者', '发行日期', '标记日期', '我的评分', '我的评语', 'Tags']
         else:
             sheet.set_column(0, 1, 30, global_format)
             sheet.set_column(2, 3, 20, global_format)
             sheet.set_column(4, 4, 50, global_format)
-            sheet_header = [u'专辑名', u'表演者', u'发行日期', u'标记日期', u'我的评语']
+            sheet.set_column(5, 5, 30, global_format)
+            sheet_header = ['专辑名', '表演者', '发行日期', '标记日期', '我的评语', 'Tags']
 
         for col, item in enumerate(sheet_header):
             sheet.write(0, col, item, heading_format)
 
-    def initial_xlsx(self):
+    def __initial_xlsx(self):
         workbook = xlsxwriter.Workbook(self.file_name, {'constant_memory': True})
 
         heading_format = workbook.add_format({'bold': True, 'font_name': 'PingFang SC', 'font_size': 11})
@@ -50,7 +53,7 @@ class MusicSheet(object):
 
         workbook.close()
 
-    def get_rating(self, rating_class):
+    def __get_rating(self, rating_class):
         """
         :param rating_class: string
         :return: int
@@ -66,7 +69,7 @@ class MusicSheet(object):
         soup = BeautifulSoup(r.text, "lxml")
 
         album_items = soup.find_all("div", {"class": "item"})
-        if album_items is not None:
+        if len(album_items) > 0:
             for item in album_items:
                 # meta data
                 douban_link = item.a['href']
@@ -85,7 +88,7 @@ class MusicSheet(object):
                 mark_date = item.find("span", {"class": "date"}).text  # .contents[0] = .text
 
                 try:
-                    rating = self.get_rating(item.find("span", class_=lambda x: x != 'date')['class'][0])
+                    rating = self.__get_rating(item.find("span", class_=lambda x: x != 'date')['class'][0])
                 except:
                     rating = None
 
@@ -93,7 +96,12 @@ class MusicSheet(object):
                     comment = item.find_all("li")[3].contents[0].strip()
                 except IndexError:
                     comment = None
-                info.append([title, artist, release_date, mark_date, rating, comment, douban_link])
+
+                tags = item.find("span", {"class": "tags"})  # the tags is None if not find
+                if tags is not None:
+                    tags = tags.text[3:].strip()
+
+                info.append([title, artist, release_date, mark_date, rating, comment, tags, douban_link])
         else:
             return None
 
@@ -132,11 +140,12 @@ class MusicSheet(object):
                 tagA = 'A' + str(row + index)
                 sht.range(tagA).add_hyperlink(info[-1], text_to_display=info[0], screen_tip=None)
                 tagB = 'B' + str(row + index)
-                sht.range(tagB).value = info[1:4] + [info[5]]
+                sht.range(tagB).value = info[1:4] + info[5:7]
         wb.save()
 
     def start_task(self):
-        self.initial_xlsx()
+        if not os.path.exists(self.file_name):
+            self.__initial_xlsx()
 
         for sheet_type in self.sheet_types:
             urls = self.url_generator(sheet_type)
@@ -149,5 +158,5 @@ class MusicSheet(object):
                 counter += 1
 
 if __name__ == "__main__":
-    new_task = MusicSheet('Davidchili')
+    new_task = MusicSheet('otsubaki')
     new_task.start_task()
