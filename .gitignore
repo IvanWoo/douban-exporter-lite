@@ -1,5 +1,6 @@
 playground/
 *.xlsx
+.DS_Store
 
 # pyenv
 .python-version
