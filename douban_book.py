@@ -7,12 +7,15 @@ import xlwings as xw
 import xlsxwriter
 
 
-class MovieSheet(object):
+class BookSheet(object):
     def __init__(self, user_id):
-        self.category = "movie"
+        self.category = "book"
         self.user_id = user_id
         self.sheet_types = ["collect", "do", "wish"]
         self.file_name = f"{self.user_id}_{self.category}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+
+        r = requests.get("https://movie.douban.com/people/{self.user_id}/collect")
+        self.cookies = r.cookies
 
     def __map_chinese_sheet_name(self, english_sheet_name):
         category_dictionary = {
@@ -38,15 +41,17 @@ class MovieSheet(object):
         sheet = workbook.add_worksheet(self.__map_chinese_sheet_name(sheet_type))
 
         if sheet_type == "collect" or sheet_type == "do":
-            sheet.set_column(0, 1, 30, global_format)
-            sheet.set_column(2, 5, 15, global_format)
+            sheet.set_column(0, 2, 30, global_format)
+            sheet.set_column(3, 5, 15, global_format)
             sheet.set_column(6, 7, 40, global_format)
-            sheet_header = ['片名', '导演', '时长', '上映日期', '标记日期', '我的评分', '我的评语', 'Tags']
-        else:
-            sheet.set_column(0, 1, 30, global_format)
-            sheet.set_column(2, 4, 15, global_format)
+            sheet_header = ['书名', '作者', '出版社', '出版日期', '标记日期', '我的评分', '我的评语', 'Tags']
+        elif sheet_type == "wish":
+            sheet.set_column(0, 2, 30, global_format)
+            sheet.set_column(3, 4, 15, global_format)
             sheet.set_column(5, 6, 40, global_format)
-            sheet_header = ['片名', '导演', '时长', '上映日期', '标记日期', '我的评语', 'Tags']
+            sheet_header = ['书名', '作者', '出版社', '出版日期', '标记日期', '我的评语', 'Tags']
+        else:
+            raise ValueError("wrong sheet type!")
 
         for col, item in enumerate(sheet_header):
             sheet.write(0, col, item, heading_format)
@@ -75,36 +80,33 @@ class MovieSheet(object):
     def export(self, url):
         info = []
 
-        r = requests.get(url)
+        r = requests.get(url, cookies=self.cookies)
         soup = BeautifulSoup(r.text, "lxml")
-
-        movie_items = soup.find_all("div", {"class": "item"})
-        if len(movie_items) > 0:
-            for item in movie_items:
-                # meta data
+        book_items = soup.find_all("li", {"class": "subject-item"})
+        if len(book_items) > 0:
+            for item in book_items:
                 douban_link = item.a['href']
-                title = item.find("li", {"class": "title"}).em.text
+                title = item.find("h2").text.strip()
+                # gibberish of douban front-end
+                if ":" in title:
+                    title = ":".join(list(map(lambda x: x.strip(), title.split(" : "))))
+                meta_data_list = item.find("div", {"class": "pub"}).text.split(" / ")
+                meta_data_list = list(map(lambda x: x.strip(), meta_data_list))  # clean up
+                if len(meta_data_list[0]) > 0:
+                    try:
+                        publish_date = next(meta_data for meta_data in meta_data_list if meta_data[0].isdigit())
+                    except StopIteration:
+                        publish_date = None
 
-                meta_data_list = item.find("li", {"class": "intro"}).text.split(' / ')
+                    if publish_date is not None:
+                        publishing_company = meta_data_list[meta_data_list.index(publish_date) - 1]
+                    else:
+                        publishing_company = None
 
-                try:
-                    movie_length = next(
-                        meta_data for meta_data in meta_data_list if '分钟' in meta_data or 'minutes' in meta_data)
-                except StopIteration:
-                    movie_length = None
-                # if not movie_length[0].isdigit():
-                #     movie_length = None
-                release_date = meta_data_list[0]
-                if not release_date[0].isdigit():
-                    release_date = None
-
-                if movie_length is not None:
-                    director = meta_data_list[meta_data_list.index(movie_length) - 1]
-                else:
-                    director = None
+                    writer = meta_data_list[0]
 
                 # user data
-                mark_date = item.find("span", {"class": "date"}).text  # .contents[0] = .text
+                mark_date = item.find("span", {"class": "date"}).text.split("\n")[0]  # .contents[0] = .text
 
                 rating = item.find("span", {"class": "date"}).find_previous_siblings()
                 if len(rating) > 0:
@@ -112,7 +114,7 @@ class MovieSheet(object):
                 else:
                     rating = None
 
-                comment = item.find("span", {"class": "comment"})
+                comment = item.find("p", {"class": "comment"})
                 if comment is not None:
                     comment = comment.contents[0].strip()
 
@@ -120,7 +122,8 @@ class MovieSheet(object):
                 if tags is not None:
                     tags = tags.text[3:].strip()
 
-                info.append([title, director, movie_length, release_date, mark_date, rating, comment, tags, douban_link])
+                info.append(
+                    [title, writer, publishing_company, publish_date, mark_date, rating, comment, tags, douban_link])
         else:
             return None
 
@@ -128,7 +131,7 @@ class MovieSheet(object):
 
     def get_max_index(self, sheet_type):
         url = f"https://{self.category}.douban.com/people/{self.user_id}/{sheet_type}"
-        r = requests.get(url)
+        r = requests.get(url, cookies=self.cookies)
         soup = BeautifulSoup(r.text, "lxml")
 
         paginator = soup.find("div", {"class": "paginator"})
@@ -179,5 +182,5 @@ class MovieSheet(object):
             print(f'{sheet_type} sheet finished!')
 
 if __name__ == "__main__":
-    new_task = MovieSheet('otsubaki')
+    new_task = BookSheet('otsubaki')
     new_task.start_task()
