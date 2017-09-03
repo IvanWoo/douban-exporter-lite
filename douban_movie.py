@@ -7,37 +7,46 @@ import xlwings as xw
 import xlsxwriter
 
 
-class MusicSheet(object):
+class MovieSheet(object):
     def __init__(self, user_id):
-        self.category = "music"
+        self.category = "movie"
         self.user_id = user_id
         self.sheet_types = ["collect", "do", "wish"]
         self.file_name = f"{self.user_id}_{self.category}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
 
     def __map_chinese_sheet_name(self, english_sheet_name):
-        switcher = {
-            "collect": "听过的音乐",
-            "do": "在听的音乐",
-            "wish": "想听的音乐",
+        category_dictionary = {
+            "music": "音乐",
+            "movie": "电影",
+            "book": "书",
         }
-        return switcher.get(english_sheet_name, "invalid sheet name")
+        keyword_dictionary = {
+            "music": "听",
+            "movie": "看",
+            "book": "读",
+        }
+        category = category_dictionary.get(self.category)
+        keyword = keyword_dictionary.get(self.category)
+        translator = {
+            "collect": f"{keyword}过的{category}",
+            "do": f"在{keyword}的{category}",
+            "wish": f"想{keyword}的{category}",
+        }
+        return translator.get(english_sheet_name, "invalid sheet name")
 
     def __initial_sheet(self, sheet_type, workbook, global_format, heading_format):
         sheet = workbook.add_worksheet(self.__map_chinese_sheet_name(sheet_type))
 
         if sheet_type == "collect" or sheet_type == "do":
             sheet.set_column(0, 1, 30, global_format)
-            sheet.set_column(2, 3, 20, global_format)
-            sheet.set_column(4, 4, 10, global_format)
-            sheet.set_column(5, 5, 50, global_format)
-            sheet.set_column(6, 6, 30, global_format)
-            sheet_header = ['专辑名', '表演者', '发行日期', '标记日期', '我的评分', '我的评语', 'Tags']
+            sheet.set_column(2, 5, 15, global_format)
+            sheet.set_column(6, 7, 40, global_format)
+            sheet_header = ['片名', '导演', '时长', '上映日期', '标记日期', '我的评分', '我的评语', 'Tags']
         else:
             sheet.set_column(0, 1, 30, global_format)
-            sheet.set_column(2, 3, 20, global_format)
-            sheet.set_column(4, 4, 50, global_format)
-            sheet.set_column(5, 5, 30, global_format)
-            sheet_header = ['专辑名', '表演者', '发行日期', '标记日期', '我的评语', 'Tags']
+            sheet.set_column(2, 4, 15, global_format)
+            sheet.set_column(5, 6, 40, global_format)
+            sheet_header = ['片名', '导演', '时长', '上映日期', '标记日期', '我的评语', 'Tags']
 
         for col, item in enumerate(sheet_header):
             sheet.write(0, col, item, heading_format)
@@ -75,41 +84,50 @@ class MusicSheet(object):
                 # meta data
                 douban_link = item.a['href']
                 title = item.find("li", {"class": "title"}).em.text
-                try:
-                    artist = str(item.find("li", {"class": "intro"}).text).split(' / ')[0]
-                except:
-                    artist = None
+
+                meta_data_list = item.find("li", {"class": "intro"}).text.split(' / ')
 
                 try:
-                    release_date = str(item.find("li", {"class": "intro"}).text).split(' / ')[1]
-                except:
+                    movie_length = next(
+                        meta_data for meta_data in meta_data_list if '分钟' in meta_data or 'minutes' in meta_data)
+                except StopIteration:
+                    movie_length = None
+                # if not movie_length[0].isdigit():
+                #     movie_length = None
+                release_date = meta_data_list[0]
+                if not release_date[0].isdigit():
                     release_date = None
+
+                if movie_length is not None:
+                    director = meta_data_list[meta_data_list.index(movie_length) - 1]
+                else:
+                    director = None
 
                 # user data
                 mark_date = item.find("span", {"class": "date"}).text  # .contents[0] = .text
 
-                try:
-                    rating = self.__get_rating(item.find("span", class_=lambda x: x != 'date')['class'][0])
-                except:
+                rating = item.find("span", {"class": "date"}).find_previous_siblings()
+                if len(rating) > 0:
+                    rating = self.__get_rating(rating[0]['class'][0])
+                else:
                     rating = None
 
-                try:
-                    comment = item.find_all("li")[3].contents[0].strip()
-                except IndexError:
-                    comment = None
+                comment = item.find("span", {"class": "comment"})
+                if comment is not None:
+                    comment = comment.contents[0].strip()
 
-                tags = item.find("span", {"class": "tags"})  # the tags is None if not find
+                tags = item.find("span", {"class": "tags"})
                 if tags is not None:
                     tags = tags.text[3:].strip()
 
-                info.append([title, artist, release_date, mark_date, rating, comment, tags, douban_link])
+                info.append([title, director, movie_length, release_date, mark_date, rating, comment, tags, douban_link])
         else:
             return None
 
         return info
 
     def get_max_index(self, sheet_type):
-        url = f"https://music.douban.com/people/{self.user_id}/{sheet_type}"
+        url = f"https://{self.category}.douban.com/people/{self.user_id}/{sheet_type}"
         r = requests.get(url)
         soup = BeautifulSoup(r.text, "lxml")
 
@@ -124,7 +142,7 @@ class MusicSheet(object):
     def url_generator(self, sheet_type):
         max_index = self.get_max_index(sheet_type)
         for index in range(0, max_index * 15, 15):
-            yield f"https://music.douban.com/people/{self.user_id}/{sheet_type}" \
+            yield f"https://{self.category}.douban.com/people/{self.user_id}/{sheet_type}" \
                   f"?start={index}&sort=time&rating=all&filter=all&mode=grid"
 
     def write_to_xlsx(self, infos, row, sheet_type):
@@ -141,7 +159,7 @@ class MusicSheet(object):
                 tagA = 'A' + str(row + index)
                 sht.range(tagA).add_hyperlink(info[-1], text_to_display=info[0], screen_tip=None)
                 tagB = 'B' + str(row + index)
-                sht.range(tagB).value = info[1:4] + info[5:7]
+                sht.range(tagB).value = info[1:5] + info[6:8]
         wb.save()
 
     def start_task(self):
@@ -161,5 +179,5 @@ class MusicSheet(object):
             print(f'{sheet_type} sheet finished!')
 
 if __name__ == "__main__":
-    new_task = MusicSheet('otsubaki')
+    new_task = MovieSheet('otsubaki')
     new_task.start_task()
