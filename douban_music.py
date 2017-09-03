@@ -1,3 +1,4 @@
+import sys
 import requests
 import os
 
@@ -161,5 +162,5 @@ class MusicSheet(object):
             print(f'{sheet_type} sheet finished!')
 
 if __name__ == "__main__":
-    new_task = MusicSheet('otsubaki')
+    new_task = MusicSheet(sys.argv[1])
     new_task.start_task()

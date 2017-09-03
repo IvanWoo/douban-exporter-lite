@@ -1,3 +1,4 @@
+import sys
 import requests
 import os
 
@@ -184,5 +185,5 @@ class BookSheet(object):
             print(f'{sheet_type} sheet finished!')
 
 if __name__ == "__main__":
-    new_task = BookSheet('mimida')
+    new_task = BookSheet(sys.argv[1])
     new_task.start_task()
