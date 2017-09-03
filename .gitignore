@@ -3,7 +3,9 @@ playground/
 .DS_Store
 
 # pyenv
+__pycache__/
 .python-version
 
 # IDE
 .idea
+.vscode
