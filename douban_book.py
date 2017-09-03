@@ -104,6 +104,8 @@ class BookSheet(object):
                         publishing_company = None
 
                     writer = meta_data_list[0]
+                else:
+                    writer, publishing_company, publish_date = None, None, None
 
                 # user data
                 mark_date = item.find("span", {"class": "date"}).text.split("\n")[0]  # .contents[0] = .text
@@ -182,5 +184,5 @@ class BookSheet(object):
             print(f'{sheet_type} sheet finished!')
 
 if __name__ == "__main__":
-    new_task = BookSheet('otsubaki')
+    new_task = BookSheet('mimida')
     new_task.start_task()
