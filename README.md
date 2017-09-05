@@ -14,3 +14,4 @@ For macOS users, you may need to give the grants of accessing some specific exce
 
 ## Acknowledgments
 - Inspired by [Wildog](https://github.com/Wildog/douban-exporter).
+- To Shinichi Atobe be the glory.
