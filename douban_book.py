@@ -15,7 +15,7 @@ class BookSheet(object):
         self.sheet_types = ["collect", "do", "wish"]
         self.file_name = f"{self.user_id}_{self.category}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
 
-        r = requests.get("https://movie.douban.com/people/{self.user_id}/collect")
+        r = requests.get(f"https://movie.douban.com/people/{self.user_id}/collect")
         self.cookies = r.cookies
 
     def __map_chinese_sheet_name(self, english_sheet_name):
