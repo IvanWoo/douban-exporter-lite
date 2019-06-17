@@ -157,7 +157,10 @@ class MusicSheet(object):
             row = 2
             for url in urls:
                 info = self.export(url)
-                self.write_to_xlsx(info, row + 15 * counter, sheet_type)
+                try:
+                    self.write_to_xlsx(info, row + 15 * counter, sheet_type)
+                except TypeError:
+                    continue
                 counter += 1
             print(f'{sheet_type} sheet finished!')
 
