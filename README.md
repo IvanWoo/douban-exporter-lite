@@ -20,7 +20,7 @@ $ pip install -r requirements.txt
 ## How to Use
 
 ```sh
-$ python douban_book.py/douban_music.py/douban_movie.py user_id
+$ python worker.py [-h] category user_id
 ```
 
 ## Tips
