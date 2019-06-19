@@ -15,7 +15,7 @@ class MovieSheet(object):
         self.sheet_types = ["collect", "do", "wish"]
         self.file_name = f"{self.user_id}_{self.category}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
 
-    def __map_chinese_sheet_name(self, english_sheet_name):
+    def map_chinese_sheet_name(self, english_sheet_name):
         category_dictionary = {
             "music": "音乐",
             "movie": "电影",
@@ -35,8 +35,8 @@ class MovieSheet(object):
         }
         return translator.get(english_sheet_name, "invalid sheet name")
 
-    def __initial_sheet(self, sheet_type, workbook, global_format, heading_format):
-        sheet = workbook.add_worksheet(self.__map_chinese_sheet_name(sheet_type))
+    def initial_sheet(self, sheet_type, workbook, global_format, heading_format):
+        sheet = workbook.add_worksheet(self.map_chinese_sheet_name(sheet_type))
 
         if sheet_type == "collect" or sheet_type == "do":
             sheet.set_column(0, 1, 30, global_format)
@@ -52,7 +52,7 @@ class MovieSheet(object):
         for col, item in enumerate(sheet_header):
             sheet.write(0, col, item, heading_format)
 
-    def __initial_xlsx(self):
+    def initial_xlsx(self):
         workbook = xlsxwriter.Workbook(self.file_name, {'constant_memory': True})
 
         heading_format = workbook.add_format({'bold': True, 'font_name': 'PingFang SC', 'font_size': 11})
@@ -60,11 +60,11 @@ class MovieSheet(object):
 
         # initial 3 sheets
         for sheet_type in self.sheet_types:
-            self.__initial_sheet(sheet_type, workbook, global_format, heading_format)
+            self.initial_sheet(sheet_type, workbook, global_format, heading_format)
 
         workbook.close()
 
-    def __get_rating(self, rating_class):
+    def get_rating(self, rating_class):
         """
         :param rating_class: string
         :return: int
@@ -109,7 +109,7 @@ class MovieSheet(object):
 
                 rating = item.find("span", {"class": "date"}).find_previous_siblings()
                 if len(rating) > 0:
-                    rating = self.__get_rating(rating[0]['class'][0])
+                    rating = self.get_rating(rating[0]['class'][0])
                 else:
                     rating = None
 
@@ -148,7 +148,7 @@ class MovieSheet(object):
 
     def write_to_xlsx(self, infos, row, sheet_type):
         wb = xw.Book(self.file_name)
-        sht = wb.sheets[self.__map_chinese_sheet_name(sheet_type)]
+        sht = wb.sheets[self.map_chinese_sheet_name(sheet_type)]
         if sheet_type == "collect" or sheet_type == "do":
             for index, info in enumerate(infos):
                 tagA = 'A' + str(row + index)
@@ -165,7 +165,7 @@ class MovieSheet(object):
 
     def start_task(self):
         if not os.path.exists(self.file_name):
-            self.__initial_xlsx()
+            self.initial_xlsx()
 
         for sheet_type in self.sheet_types:
             print(f'{sheet_type} sheet started!')
