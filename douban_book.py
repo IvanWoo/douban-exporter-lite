@@ -7,8 +7,10 @@ from bs4 import BeautifulSoup
 import xlwings as xw
 import xlsxwriter
 
+from douban_exporter import DoubanExport
 
-class BookSheet(object):
+
+class BookSheet(DoubanExport):
     def __init__(self, user_id):
         super().__init__(user_id)
         self.category = "book"
