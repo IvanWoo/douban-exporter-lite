@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 import xlwings as xw
 import xlsxwriter
 
-from douban_exporter import DoubanExport
+from douban_exporter_lite.douban_exporter import DoubanExport
 
 
 class BookSheet(DoubanExport):
