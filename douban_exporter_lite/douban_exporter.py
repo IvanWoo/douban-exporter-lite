@@ -87,6 +87,7 @@ class DoubanExport(object):
             yield f"https://{self.category}.douban.com/people/{self.user_id}/{sheet_type}" \
                   f"?start={index}&sort=time&rating=all&filter=all&mode=grid"
 
+    # TODO: refactor the data structure of infos into a dictionary rather than relying on the position of list
     def write_to_xlsx(self, infos, row, sheet_type):
         wb = xw.Book(self.file_name)
         sht = wb.sheets[self.map_chinese_sheet_name(sheet_type)]
@@ -103,6 +104,7 @@ class DoubanExport(object):
                 sht.range(tagA).add_hyperlink(
                     info[-1], text_to_display=info[0], screen_tip=None)
                 tagB = 'B' + str(row + index)
+                # no rating for 想读/听/看
                 sht.range(tagB).value = info[1:5] + info[6:8]
         wb.save()
 
