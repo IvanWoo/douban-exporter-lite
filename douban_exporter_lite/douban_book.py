@@ -78,7 +78,7 @@ class BookSheet(DoubanExporter):
                 rating = item.find(
                     "span", {"class": "date"}).find_previous_siblings()
                 if len(rating) > 0:
-                    rating = self.get_rating(rating[0]['class'][0])
+                    rating = DoubanExporter.get_rating(rating[0]['class'][0])
                 else:
                     rating = None
 

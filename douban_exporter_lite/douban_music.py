@@ -66,7 +66,7 @@ class MusicSheet(DoubanExporter):
                 mark_date = item.find("span", {"class": "date"}).text
 
                 try:
-                    rating = self.get_rating(
+                    rating = DoubanExporter.get_rating(
                         item.find("span", class_=lambda x: x != 'date')['class'][0])
                 except:
                     rating = None

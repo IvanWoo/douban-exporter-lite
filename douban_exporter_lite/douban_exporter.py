@@ -56,7 +56,8 @@ class DoubanExporter(object):
 
         workbook.close()
 
-    def get_rating(self, rating_class):
+    @staticmethod
+    def get_rating(rating_class):
         """
         :param rating_class: string
         :return: int
