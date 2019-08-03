@@ -7,10 +7,10 @@ from bs4 import BeautifulSoup
 import xlwings as xw
 import xlsxwriter
 
-from douban_exporter_lite.douban_exporter import DoubanExport
+from douban_exporter_lite.douban_exporter import DoubanExporter
 
 
-class MovieSheet(DoubanExport):
+class MovieSheet(DoubanExporter):
     def __init__(self, user_id):
         super().__init__(user_id)
         self.category = "movie"

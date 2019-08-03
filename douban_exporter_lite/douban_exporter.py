@@ -8,7 +8,7 @@ import xlwings as xw
 import xlsxwriter
 
 
-class DoubanExport(object):
+class DoubanExporter(object):
     def __init__(self, user_id):
         self.user_id = user_id
         self.sheet_types = ["collect", "do", "wish"]
