@@ -1,6 +1,7 @@
 import sys
 import requests
 import os
+import abc
 
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -37,8 +38,9 @@ class DoubanExporter(object):
         }
         return translator.get(english_sheet_name, "invalid sheet name")
 
+    @abc.abstractclassmethod
     def initial_sheet(self, sheet_type, workbook, global_format, heading_format):
-        pass
+        """initialize the barebone spreadsheet with column names"""
 
     def initial_xlsx(self):
         workbook = xlsxwriter.Workbook(
@@ -66,8 +68,9 @@ class DoubanExporter(object):
         """
         return int(rating_class[6])
 
+    @abc.abstractclassmethod
     def export(self, url):
-        pass
+        """scrape information from website and prepare them ready to write into spreadsheet"""
 
     def get_max_index(self, sheet_type):
         url = f"https://{self.category}.douban.com/people/{self.user_id}/{sheet_type}"
