@@ -5,7 +5,7 @@ A lightweight and faster Dòubàn data exporter
 ## Requirements
 
 * [pyenv](https://github.com/pyenv/pyenv)
-* Microsoft Excel
+* [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv)
 
 ## Building and deployment
 
@@ -14,7 +14,17 @@ $ pyenv install 3.7.2
 $ pyenv virtualenv 3.7.2 douban-exporter-lite
 $ pyenv activate douban-exporter-lite
 
-$ pip install -r requirements.txt
+$ pip install --upgrade pip pip-tools pipdeptree fabric black
+$ pip install .
+$ pip install -r notebooks/requirements.txt
+```
+
+### Making Release
+
+To build a python wheel package and generate `requirements.txt` for later usage
+
+```sh
+$ fab freeze
 ```
 
 ## How to Use
