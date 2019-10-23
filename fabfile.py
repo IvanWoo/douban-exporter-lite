@@ -10,4 +10,3 @@ def freeze(c):
     run(c, "python setup.py release")
     run(c, "rm -f requirements.txt")
     run(c, "pip-compile -f dist --output-file requirements.txt")
-    run(c, "awk -i inplace 'BEGINFILE{print \"-f dist\"} {print $0}' requirements.txt")
