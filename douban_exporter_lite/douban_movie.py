@@ -8,13 +8,16 @@ import xlwings as xw
 import xlsxwriter
 
 from douban_exporter_lite.douban_exporter import DoubanExporter
+from douban_exporter_lite.misc import HEADERS
 
 
 class MovieSheet(DoubanExporter):
     def __init__(self, user_id):
         super().__init__(user_id)
         self.category = "movie"
-        self.file_name = f"{self.user_id}_{self.category}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+        self.file_name = (
+            f"{self.user_id}_{self.category}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+        )
 
     def initial_sheet(self, sheet_type, workbook, global_format, heading_format):
         sheet = workbook.add_worksheet(self.map_chinese_sheet_name(sheet_type))
@@ -23,13 +26,12 @@ class MovieSheet(DoubanExporter):
             sheet.set_column(0, 1, 30, global_format)
             sheet.set_column(2, 5, 15, global_format)
             sheet.set_column(6, 7, 40, global_format)
-            sheet_header = ['片名', '导演', '时长', '上映日期',
-                            '标记日期', '我的评分', '我的评语', 'Tags']
+            sheet_header = ["片名", "导演", "时长", "上映日期", "标记日期", "我的评分", "我的评语", "Tags"]
         else:
             sheet.set_column(0, 1, 30, global_format)
             sheet.set_column(2, 4, 15, global_format)
             sheet.set_column(5, 6, 40, global_format)
-            sheet_header = ['片名', '导演', '时长', '上映日期', '标记日期', '我的评语', 'Tags']
+            sheet_header = ["片名", "导演", "时长", "上映日期", "标记日期", "我的评语", "Tags"]
 
         for col, item in enumerate(sheet_header):
             sheet.write(0, col, item, heading_format)
@@ -37,22 +39,24 @@ class MovieSheet(DoubanExporter):
     def export(self, url):
         info = []
 
-        r = requests.get(url)
+        r = requests.get(url, headers=HEADERS)
         soup = BeautifulSoup(r.text, "lxml")
 
         movie_items = soup.find_all("div", {"class": "item"})
         if len(movie_items) > 0:
             for item in movie_items:
                 # meta data
-                douban_link = item.a['href']
+                douban_link = item.a["href"]
                 title = item.find("li", {"class": "title"}).em.text
 
-                meta_data_list = item.find(
-                    "li", {"class": "intro"}).text.split(' / ')
+                meta_data_list = item.find("li", {"class": "intro"}).text.split(" / ")
 
                 try:
                     movie_length = next(
-                        meta_data for meta_data in meta_data_list if '分钟' in meta_data or 'minutes' in meta_data)
+                        meta_data
+                        for meta_data in meta_data_list
+                        if "分钟" in meta_data or "minutes" in meta_data
+                    )
                 except StopIteration:
                     movie_length = None
                 # if not movie_length[0].isdigit():
@@ -62,8 +66,7 @@ class MovieSheet(DoubanExporter):
                     release_date = None
 
                 if movie_length is not None:
-                    director = meta_data_list[meta_data_list.index(
-                        movie_length) - 1]
+                    director = meta_data_list[meta_data_list.index(movie_length) - 1]
                 else:
                     director = None
 
@@ -71,10 +74,9 @@ class MovieSheet(DoubanExporter):
                 # .contents[0] = .text
                 mark_date = item.find("span", {"class": "date"}).text
 
-                rating = item.find(
-                    "span", {"class": "date"}).find_previous_siblings()
+                rating = item.find("span", {"class": "date"}).find_previous_siblings()
                 if len(rating) > 0:
-                    rating = DoubanExporter.get_rating(rating[0]['class'][0])
+                    rating = DoubanExporter.get_rating(rating[0]["class"][0])
                 else:
                     rating = None
 
@@ -86,8 +88,19 @@ class MovieSheet(DoubanExporter):
                 if tags is not None:
                     tags = tags.text[3:].strip()
 
-                info.append([title, director, movie_length, release_date,
-                             mark_date, rating, comment, tags, douban_link])
+                info.append(
+                    [
+                        title,
+                        director,
+                        movie_length,
+                        release_date,
+                        mark_date,
+                        rating,
+                        comment,
+                        tags,
+                        douban_link,
+                    ]
+                )
         else:
             return None
 

@@ -8,6 +8,8 @@ from bs4 import BeautifulSoup
 import xlwings as xw
 import xlsxwriter
 
+from douban_exporter_lite.misc import HEADERS
+
 
 class DoubanExporter(object):
     def __init__(self, user_id):
@@ -15,7 +17,8 @@ class DoubanExporter(object):
         self.sheet_types = ["collect", "do", "wish"]
 
         r = requests.get(
-            f"https://movie.douban.com/people/{self.user_id}/collect")
+            f"https://movie.douban.com/people/{self.user_id}/collect", headers=HEADERS
+        )
         self.cookies = r.cookies
 
     def map_chinese_sheet_name(self, english_sheet_name):
@@ -43,18 +46,18 @@ class DoubanExporter(object):
         """initialize the barebone spreadsheet with column names"""
 
     def initial_xlsx(self):
-        workbook = xlsxwriter.Workbook(
-            self.file_name, {'constant_memory': True})
+        workbook = xlsxwriter.Workbook(self.file_name, {"constant_memory": True})
 
         heading_format = workbook.add_format(
-            {'bold': True, 'font_name': 'PingFang SC', 'font_size': 11})
+            {"bold": True, "font_name": "PingFang SC", "font_size": 11}
+        )
         global_format = workbook.add_format(
-            {'font_name': 'PingFang SC', 'font_size': 11})
+            {"font_name": "PingFang SC", "font_size": 11}
+        )
 
         # initial 3 sheets
         for sheet_type in self.sheet_types:
-            self.initial_sheet(sheet_type, workbook,
-                               global_format, heading_format)
+            self.initial_sheet(sheet_type, workbook, global_format, heading_format)
 
         workbook.close()
 
@@ -74,22 +77,19 @@ class DoubanExporter(object):
 
     def get_max_index(self, sheet_type):
         url = f"https://{self.category}.douban.com/people/{self.user_id}/{sheet_type}"
-        r = requests.get(url, cookies=self.cookies)
-        soup = BeautifulSoup(r.text, "lxml")
-
-        paginator = soup.find("div", {"class": "paginator"})
-        if paginator is not None:
-            max_index = paginator.find_all("a")[-2].get_text()
+        r = requests.get(url, cookies=self.cookies, headers=HEADERS)
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.text, "lxml")
+            paginator = soup.find("div", {"class": "paginator"})
+            max_index = paginator.find_all("a")[-2].get_text() if paginator else 1
+            return int(max_index)
         else:
-            max_index = 1
-
-        return int(max_index)
+            raise Exception(f"{r.status_code}: requests failed")
 
     def url_generator(self, sheet_type):
         max_index = self.get_max_index(sheet_type)
         for index in range(0, max_index * 15, 15):
-            yield f"https://{self.category}.douban.com/people/{self.user_id}/{sheet_type}" \
-                  f"?start={index}&sort=time&rating=all&filter=all&mode=grid"
+            yield f"https://{self.category}.douban.com/people/{self.user_id}/{sheet_type}" f"?start={index}&sort=time&rating=all&filter=all&mode=grid"
 
     # TODO: refactor the data structure of infos into a dictionary rather than relying on the position of list
     def write_to_xlsx(self, infos, row, sheet_type):
@@ -97,17 +97,19 @@ class DoubanExporter(object):
         sht = wb.sheets[self.map_chinese_sheet_name(sheet_type)]
         if sheet_type == "collect" or sheet_type == "do":
             for index, info in enumerate(infos):
-                tagA = 'A' + str(row + index)
+                tagA = "A" + str(row + index)
                 sht.range(tagA).add_hyperlink(
-                    info[-1], text_to_display=info[0], screen_tip=None)
-                tagB = 'B' + str(row + index)
-                sht.range(tagB).value = info[1: len(info) - 1]
+                    info[-1], text_to_display=info[0], screen_tip=None
+                )
+                tagB = "B" + str(row + index)
+                sht.range(tagB).value = info[1 : len(info) - 1]
         else:
             for index, info in enumerate(infos):
-                tagA = 'A' + str(row + index)
+                tagA = "A" + str(row + index)
                 sht.range(tagA).add_hyperlink(
-                    info[-1], text_to_display=info[0], screen_tip=None)
-                tagB = 'B' + str(row + index)
+                    info[-1], text_to_display=info[0], screen_tip=None
+                )
+                tagB = "B" + str(row + index)
                 # no rating for 想读/听/看
                 sht.range(tagB).value = info[1:5] + info[6:8]
         wb.save()
@@ -117,7 +119,7 @@ class DoubanExporter(object):
             self.initial_xlsx()
 
         for sheet_type in self.sheet_types:
-            print(f'{sheet_type} sheet started!')
+            print(f"{sheet_type} sheet started!")
             urls = self.url_generator(sheet_type)
 
             counter = 0
@@ -129,4 +131,4 @@ class DoubanExporter(object):
                 except TypeError:
                     continue
                 counter += 1
-            print(f'{sheet_type} sheet finished!')
+            print(f"{sheet_type} sheet finished!")

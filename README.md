@@ -24,7 +24,7 @@ $ fab freeze
 ## How to Use
 
 ```sh
-$ python worker.py [-h] category user_id
+$ pipenv run python worker.py [-h] category user_id
 ```
 
 ## Tips
