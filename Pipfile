@@ -1,0 +1,31 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+pytest = "*"
+pytest-cov = "*"
+black = "*"
+nb_black="*"
+fabric = "*"
+jupyterlab = "*"
+douban-exporter-lite = {editable = true,path = "."}
+
+[packages]
+beautifulsoup4 = "*"
+requests = "*"
+xlwings = "*"
+lxml = "*"
+XlsxWriter = "*"
+
+[requires]
+python_version = "3.7"
+
+[pipenv]
+allow_prereleases = true
+
+[scripts]
+test="python -m pytest --verbose -s -p no:warnings --cov-report term-missing --cov 'douban_exporter_lite'"
+jupyter="jupyter lab"
+clean="python setup.py clean_all"
