@@ -125,9 +125,9 @@ class DoubanExporter(object):
             counter = 0
             row = 2
             for url in urls:
-                info = self.export(url)
+                infos = self.export(url)
                 try:
-                    self.write_to_xlsx(info, row + 15 * counter, sheet_type)
+                    self.write_to_xlsx(infos, row + 15 * counter, sheet_type)
                 except TypeError:
                     continue
                 counter += 1

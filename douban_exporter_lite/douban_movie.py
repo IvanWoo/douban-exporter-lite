@@ -1,6 +1,7 @@
 import sys
 import requests
 import os
+from typing import List
 
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -36,18 +37,29 @@ class MovieSheet(DoubanExporter):
         for col, item in enumerate(sheet_header):
             sheet.write(0, col, item, heading_format)
 
-    def export(self, url):
-        info = []
-
+    def export(self, url: str) -> List[str]:
+        infos = []
+        info_keys = [
+            "title",
+            "director",
+            "movie_length",
+            "release_date",
+            "mark_date",
+            "rating",
+            "comment",
+            "tags",
+            "douban_link",
+        ]
         r = requests.get(url, headers=HEADERS)
         soup = BeautifulSoup(r.text, "lxml")
 
         movie_items = soup.find_all("div", {"class": "item"})
         if len(movie_items) > 0:
             for item in movie_items:
+                info_dict = dict.fromkeys(info_keys)
                 # meta data
-                douban_link = item.a["href"]
-                title = item.find("li", {"class": "title"}).em.text
+                info_dict["douban_link"] = item.a["href"]
+                info_dict["title"] = item.find("li", {"class": "title"}).em.text
 
                 meta_data_list = item.find("li", {"class": "intro"}).text.split(" / ")
 
@@ -59,52 +71,40 @@ class MovieSheet(DoubanExporter):
                     )
                 except StopIteration:
                     movie_length = None
-                # if not movie_length[0].isdigit():
-                #     movie_length = None
-                release_date = meta_data_list[0]
-                if not release_date[0].isdigit():
-                    release_date = None
+                info_dict["movie_length"] = movie_length
 
-                if movie_length is not None:
-                    director = meta_data_list[meta_data_list.index(movie_length) - 1]
-                else:
-                    director = None
+                release_date = meta_data_list[0]
+                if release_date[0].isdigit():
+                    info_dict["release_date"] = release_date
+
+                if movie_length:
+                    info_dict["director"] = meta_data_list[
+                        meta_data_list.index(movie_length) - 1
+                    ]
 
                 # user data
                 # .contents[0] = .text
-                mark_date = item.find("span", {"class": "date"}).text
+                info_dict["mark_date"] = item.find("span", {"class": "date"}).text
 
                 rating = item.find("span", {"class": "date"}).find_previous_siblings()
                 if len(rating) > 0:
-                    rating = DoubanExporter.get_rating(rating[0]["class"][0])
-                else:
-                    rating = None
+                    info_dict["rating"] = DoubanExporter.get_rating(
+                        rating[0]["class"][0]
+                    )
 
                 comment = item.find("span", {"class": "comment"})
-                if comment is not None:
-                    comment = comment.contents[0].strip()
+                if comment:
+                    info_dict["comment"] = comment.contents[0].strip()
 
                 tags = item.find("span", {"class": "tags"})
-                if tags is not None:
-                    tags = tags.text[3:].strip()
+                if tags:
+                    info_dict["tags"] = tags.text[3:].strip()
 
-                info.append(
-                    [
-                        title,
-                        director,
-                        movie_length,
-                        release_date,
-                        mark_date,
-                        rating,
-                        comment,
-                        tags,
-                        douban_link,
-                    ]
-                )
+                infos.append([info_dict[key] for key in info_keys])
         else:
             return None
 
-        return info
+        return infos
 
 
 if __name__ == "__main__":
