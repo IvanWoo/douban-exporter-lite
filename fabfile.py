@@ -7,6 +7,5 @@ def run(c, cmd):
 
 @task
 def freeze(c):
-    run(c, "python setup.py release")
     run(c, "rm -f requirements.txt")
     run(c, "pipenv lock -r > requirements.txt")
