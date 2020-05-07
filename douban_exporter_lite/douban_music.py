@@ -1,6 +1,7 @@
 import sys
 import requests
 import os
+from typing import List
 
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -39,68 +40,66 @@ class MusicSheet(DoubanExporter):
         for col, item in enumerate(sheet_header):
             sheet.write(0, col, item, heading_format)
 
-    def export(self, url):
-        info = []
-
+    def export(self, url: str) -> List[str]:
+        infos = []
+        info_keys = [
+            "title",
+            "artist",
+            "release_date",
+            "mark_date",
+            "rating",
+            "comment",
+            "tags",
+            "douban_link",
+        ]
         r = requests.get(url, headers=HEADERS)
         soup = BeautifulSoup(r.text, "lxml")
 
         album_items = soup.find_all("div", {"class": "item"})
         if len(album_items) > 0:
             for item in album_items:
+                info_dict = dict.fromkeys(info_keys)
                 # meta data
-                douban_link = item.a["href"]
-                title = item.find("li", {"class": "title"}).em.text
+                info_dict["douban_link"] = item.a["href"]
+                info_dict["title"] = item.find("li", {"class": "title"}).em.text
                 try:
-                    artist = str(item.find("li", {"class": "intro"}).text).split(" / ")[
-                        0
-                    ]
+                    info_dict["artist"] = str(
+                        item.find("li", {"class": "intro"}).text
+                    ).split(" / ")[0]
                 except:
-                    artist = None
+                    pass
 
                 try:
-                    release_date = str(item.find("li", {"class": "intro"}).text).split(
-                        " / "
-                    )[1]
+                    info_dict["release_date"] = str(
+                        item.find("li", {"class": "intro"}).text
+                    ).split(" / ")[1]
                 except:
-                    release_date = None
+                    pass
 
                 # user data
                 # .contents[0] = .text
-                mark_date = item.find("span", {"class": "date"}).text
+                info_dict["mark_date"] = item.find("span", {"class": "date"}).text
 
                 try:
-                    rating = DoubanExporter.get_rating(
+                    info_dict["rating"] = DoubanExporter.get_rating(
                         item.find("span", class_=lambda x: x != "date")["class"][0]
                     )
                 except:
-                    rating = None
+                    pass
 
                 try:
-                    comment = item.find_all("li")[3].contents[0].strip()
+                    info_dict["comment"] = item.find_all("li")[3].contents[0].strip()
                 except IndexError:
-                    comment = None
+                    pass
 
-                # the tags is None if not find
                 tags = item.find("span", {"class": "tags"})
-                if tags is not None:
-                    tags = tags.text[3:].strip()
+                if tags:
+                    info_dict["tags"] = tags.text[3:].strip()
 
-                info.append(
-                    [
-                        title,
-                        artist,
-                        release_date,
-                        mark_date,
-                        rating,
-                        comment,
-                        tags,
-                        douban_link,
-                    ]
-                )
+                infos.append([info_dict[key] for key in info_keys])
         else:
             return None
-        return info
+        return infos
 
 
 if __name__ == "__main__":
