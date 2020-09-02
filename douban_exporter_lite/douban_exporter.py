@@ -11,7 +11,7 @@ import xlsxwriter
 from douban_exporter_lite.misc import HEADERS
 
 
-class DoubanExporter(object):
+class DoubanExporter(abc.ABC):
     def __init__(self, user_id):
         self.user_id = user_id
         self.sheet_types = ["collect", "do", "wish"]
